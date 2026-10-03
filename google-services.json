@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "714650866570",
+    "firebase_url": "https://scho-28507-default-rtdb.firebaseio.com",
+    "project_id": "scho-28507",
+    "storage_bucket": "scho-28507.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:714650866570:android:14192d63aaae4aee86ae73",
+        "android_client_info": {
+          "package_name": "com.seohacker.browser"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwpFTZOIGYvoxb9YvchMqBlkGZdxjWiYE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
