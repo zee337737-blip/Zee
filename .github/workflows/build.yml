@@ -1,42 +1,10 @@
-name: Build APK
-
-on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Unzip project
+- name: Build debug APK
+        working-directory: ${{ env.PROJECT_ROOT }}
         run: |
-          unzip -o seo-hacker-browser.zip -d _project
-          SRC=$(dirname "$(find _project -name settings.gradle.kts | head -1)")
-          echo "PROJECT_DIR=$SRC" >> $GITHUB_ENV
-          if [ ! -f google-services.json ]; then
-            echo "::error::google-services.json is missing in the repo root"
-            exit 1
-          fi
-          cp google-services.json "$SRC/app/google-services.json"
+          set -o pipefail
+          gradle assembleDebug --no-daemon --console=plain 2>&1 | tee build.log
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 8.7
-
-      - name: Build debug APK
-        run: |
-          cd "$PROJECT_DIR"
-          gradle assembleDebug --no-daemon --stacktrace
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: SEO-Browser-APK
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
+      - name: Show errors
+        if: failure()
+        working-directory: ${{ env.PROJECT_ROOT }}
+        run: grep -E "^e: |error:|What went wrong|Execution failed|Unresolved|AAPT" build.log | head -40
