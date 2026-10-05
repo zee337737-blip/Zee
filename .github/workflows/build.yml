@@ -2,7 +2,7 @@ name: Build APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ "**" ]
   workflow_dispatch:
 
 jobs:
@@ -13,30 +13,39 @@ jobs:
 
       - name: Unzip project
         run: |
-          unzip -o seo-hacker-browser.zip -d _project
-          SRC=$(dirname "$(find _project -name settings.gradle.kts | head -1)")
-          echo "PROJECT_DIR=$SRC" >> $GITHUB_ENV
-          if [ ! -f google-services.json ]; then
-            echo "::error::google-services.json is missing in the repo root"
+          ZIP=$(ls -t *.zip | head -n 1)
+          echo "Using $ZIP"
+          rm -rf _proj && mkdir _proj
+          unzip -o -q "$ZIP" -d _proj
+          ROOT=$(dirname "$(find _proj -name settings.gradle.kts | head -n 1)")
+          echo "PROJECT_ROOT=$ROOT" >> $GITHUB_ENV
+
+      - name: Add google-services.json
+        run: |
+          if [ ! -f "$PROJECT_ROOT/app/google-services.json" ]; then
+            for f in app/google-services.json google-services.json; do
+              if [ -f "$f" ]; then cp "$f" "$PROJECT_ROOT/app/google-services.json"; break; fi
+            done
+          fi
+          if [ ! -f "$PROJECT_ROOT/app/google-services.json" ]; then
+            echo "::error::google-services.json is missing"
             exit 1
           fi
-          cp google-services.json "$SRC/app/google-services.json"
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: "17"
 
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: 8.7
+          gradle-version: "8.7"
 
       - name: Build debug APK
-        run: |
-          cd "$PROJECT_DIR"
-          gradle assembleDebug --no-daemon --stacktrace
+        working-directory: ${{ env.PROJECT_ROOT }}
+        run: gradle assembleDebug --no-daemon --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:
-          name: SEO-Browser-APK
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
+          name: seo-browser-debug-apk
+          path: ${{ env.PROJECT_ROOT }}/app/build/outputs/apk/debug/app-debug.apk
