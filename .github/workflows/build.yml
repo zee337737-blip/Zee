@@ -1,4 +1,47 @@
-- name: Build debug APK
+name: Build APK
+
+on:
+  push:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unzip project
+        run: |
+          ZIP=$(ls -t *.zip | head -n 1)
+          echo "Using $ZIP"
+          rm -rf _proj && mkdir _proj
+          unzip -o -q "$ZIP" -d _proj
+          ROOT=$(dirname "$(find _proj -name settings.gradle.kts | head -n 1)")
+          echo "PROJECT_ROOT=$ROOT" >> $GITHUB_ENV
+
+      - name: Add google-services.json
+        run: |
+          if [ ! -f "$PROJECT_ROOT/app/google-services.json" ]; then
+            for f in app/google-services.json google-services.json; do
+              if [ -f "$f" ]; then cp "$f" "$PROJECT_ROOT/app/google-services.json"; break; fi
+            done
+          fi
+          if [ ! -f "$PROJECT_ROOT/app/google-services.json" ]; then
+            echo "::error::google-services.json is missing"
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build debug APK
         working-directory: ${{ env.PROJECT_ROOT }}
         run: |
           set -o pipefail
@@ -7,4 +50,10 @@
       - name: Show errors
         if: failure()
         working-directory: ${{ env.PROJECT_ROOT }}
-        run: grep -E "^e: |error:|What went wrong|Execution failed|Unresolved|AAPT" build.log | head -40
+        run: |
+          grep -E "^e: |error:|What went wrong|Execution failed|Unresolved|AAPT" build.log | head -40
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: seo-browser-debug-apk
+          path: ${{ env.PROJECT_ROOT }}/app/build/outputs/apk/debug/app-debug.apk
